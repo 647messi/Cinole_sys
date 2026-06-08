@@ -4,7 +4,7 @@ import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from Cinole_sys.App.backend.app.core.logging import get_logger
+from app.core.logging import get_logger
 
 
 logger = get_logger(__name__)

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from Cinole_sys.App.backend.app.core.logging import setup_logging, get_logger
-from Cinole_sys.App.backend.app.middleware.request_log import RequestLogMiddleware
-from Cinole_sys.App.backend.app.api.v1.router import api_v1_router
+from app.core.logging import setup_logging, get_logger
+from app.middleware.request_log import RequestLogMiddleware
+from app.api.v1.router import api_v1_router
 
 
 setup_logging()
