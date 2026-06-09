@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.master.material import Material
+from app.models.master.material_model import Material
 from app.repositories.master.material_repository import *
 from app.schemas.master.material.create import MaterialCreate
 from app.schemas.master.material.update import MaterialUpdate

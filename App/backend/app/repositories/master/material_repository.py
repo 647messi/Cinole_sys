@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.models.master.material import Material
+from app.models.master.material_model import Material
 
 
 def get_all_materials(db: Session) -> list[Material]:

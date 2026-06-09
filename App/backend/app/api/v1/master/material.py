@@ -2,9 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.schemas.master.material.create import MaterialCreate
-from app.schemas.master.material.update import MaterialUpdate
-from app.schemas.master.material.response import MaterialResponse
+from app.schemas.master.material import MaterialCreate, MaterialUpdate, MaterialResponse
 from app.services.master.material_service import *
 
 router = APIRouter(
