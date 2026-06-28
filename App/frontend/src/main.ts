@@ -1,11 +1,25 @@
-// import "./assets/main.css"
+import './assets/main.css'
 
-import { createApp } from "vue"
-import App from "./App.vue"
-import router from "./router"
+import { createApp } from 'vue'
+import App from './App.vue'
 
-const app = createApp(App)
+// createApp(App).mount('#app')
+import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router'
 
-app.use(router)
+import GoodsReceipt from '@/pages/GoodsReceipt.vue'
+import Home from '@/pages/Home.vue'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
 
-app.mount("#app")
+const routes = [
+  { path: "/", redirect: "/goods-receipt" },
+  { path: "/home", component: Home },
+  { path: '/goods-receipt', component: GoodsReceipt },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
+
+createApp(App).use(router).use(ElementPlus).mount('#app')
