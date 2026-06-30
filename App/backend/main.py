@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.core.logging import setup_logging, get_logger
 from app.middleware.request_log import RequestLogMiddleware
-from app.api.v1.router import api_v1_router
+from app import router as api_router
 
 
 setup_logging()
@@ -15,7 +15,7 @@ app = FastAPI(
 
 app.add_middleware(RequestLogMiddleware)
 
-app.include_router(api_v1_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api")
 
 
 @app.on_event("startup")
