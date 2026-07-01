@@ -82,7 +82,7 @@ App/backend
 │   │   └── v1
 │   │       ├── router.py
 │   │       ├── master
-│   │       │   ├── material.py
+│   │       │   ├── raw_material_dict.py
 │   │       │   └── supplier.py
 │   │       └── system
 │   │           └── dev_test
@@ -97,15 +97,15 @@ App/backend
 │   │   └── request_log.py
 │   ├── models
 │   │   └── master
-│   │       ├── material_model.py
+│   │       ├── raw_material_dict_model.py
 │   │       └── supplier_model.py
 │   ├── repositories
 │   │   └── master
-│   │       ├── material_repository.py
+│   │       ├── raw_material_dict_repository.py
 │   │       └── supplier_repository.py
 │   ├── schemas
 │   │   └── master
-│   │       ├── material
+│   │       ├── raw_material_dict
 │   │       │   ├── create.py
 │   │       │   ├── update.py
 │   │       │   ├── response.py
@@ -117,7 +117,7 @@ App/backend
 │   │           └── query.py
 │   └── services
 │       └── master
-│           ├── material_service.py
+│           ├── raw_material_dict_service.py
 │           └── supplier_service.py
 └── logs
     ├── app.log
@@ -203,7 +203,7 @@ Included routers:
 
 | Router / 路由 | Prefix / 前缀 | Source / 来源 |
 | --- | --- | --- |
-| Material / 物料 | `/master/materials` | `app/api/v1/master/material.py` |
+| Raw Material Dict / 原料字典 | `/master/raw_material_dict` | `app/api/v1/master/raw_material_dict.py` |
 | Supplier / 供应商 | `/master/suppliers` | `app/api/v1/master/supplier.py` |
 | DB Test / 数据库测试 | `/system/dev-test` | `app/api/v1/system/dev_test/db_test.py` |
 
@@ -215,11 +215,11 @@ Final paths after `/api/v1` mounting:
 
 | Method / 方法 | Path / 路径 | Description / 描述 |
 | --- | --- | --- |
-| `GET` | `/api/v1/master/materials` | List all materials. / 查询物料列表。 |
-| `GET` | `/api/v1/master/materials/{material_id}` | Get material by ID. / 根据 ID 查询物料。 |
-| `POST` | `/api/v1/master/materials` | Create material and auto-generate material code. / 创建物料并自动生成物料编码。 |
-| `PUT` | `/api/v1/master/materials/{material_id}` | Update material fields. / 更新物料字段。 |
-| `PATCH` | `/api/v1/master/materials/{material_id}/status` | Update `is_active`. / 更新启用状态。 |
+| `GET` | `/api/v1/master/raw_material_dict` | List all raw material dictionary records. / 查询原料字典列表。 |
+| `GET` | `/api/v1/master/raw_material_dict/{material_id}` | Get raw material dictionary record by ID. / 根据 ID 查询原料字典。 |
+| `POST` | `/api/v1/master/raw_material_dict` | Create raw material dictionary record with request-provided material code. / 使用请求提供的物料编码创建原料字典。 |
+| `PUT` | `/api/v1/master/raw_material_dict/{material_id}` | Update raw material dictionary fields. / 更新原料字典字段。 |
+| `PATCH` | `/api/v1/master/raw_material_dict/{material_id}/status` | Update `is_active`. / 更新启用状态。 |
 
 Material code generation:
 

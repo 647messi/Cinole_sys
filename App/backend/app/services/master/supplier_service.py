@@ -2,7 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.models.master.supplier_model import Supplier
+from app.models.master.supplier_model import Supplier, SupplierOriginAddress
 from app.repositories.master.supplier_repository import *
 from app.schemas.master.supplier import SupplierCreate, SupplierUpdate
 
@@ -77,3 +77,16 @@ def list_suppliers_by_variables_service(db: Session, **kwargs) -> list[Supplier]
     This is a placeholder for actual filtering logic.
     """
     return list_suppliers_by_variables(db, **kwargs)
+
+def list_supplier_origin_addresses_service(
+    db: Session,
+    supplier_id: int,
+) -> list[SupplierOriginAddress]:
+    """
+    List all origin addresses for a supplier.
+    """
+    supplier = get_supplier(db, supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+
+    return list_supplier_origin_addresses(db, supplier_id)

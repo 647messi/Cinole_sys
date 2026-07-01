@@ -3,7 +3,12 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.master.supplier import SupplierCreate, SupplierUpdate, SupplierResponse
+from app.schemas.master.supplier import (
+    SupplierCreate,
+    SupplierOriginAddressResponse,
+    SupplierResponse,
+    SupplierUpdate,
+)
 from app.services.master.supplier_service import *
 
 router = APIRouter(
@@ -28,6 +33,14 @@ def list_suppliers_by_required_columns(
     db: Session = Depends(get_db),
 ):
     return list_suppliers_by_required_columns_service(db, col_names)
+
+# Get Supplier Origin Addresses by Supplier ID
+@router.get("/{supplier_id}/origin-addresses", response_model=list[SupplierOriginAddressResponse])
+def list_supplier_origin_addresses(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+):
+    return list_supplier_origin_addresses_service(db, supplier_id)
 
 @router.get("/{supplier_pk}", response_model=SupplierResponse)
 def get_supplier(supplier_pk: int, db: Session = Depends(get_db)):

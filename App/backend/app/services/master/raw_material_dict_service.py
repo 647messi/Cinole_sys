@@ -1,10 +1,10 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.master.material_model import Material
-from app.repositories.master.material_repository import *
-from app.schemas.master.material.create import MaterialCreate
-from app.schemas.master.material.update import MaterialUpdate
+from app.models.master.raw_material_dict_model import Material
+from app.repositories.master.raw_material_dict_repository import *
+from app.schemas.master.raw_material_dict.create import MaterialCreate
+from app.schemas.master.raw_material_dict.update import MaterialUpdate
 
 #------------------- Helper functions ------------------#
 
@@ -42,17 +42,8 @@ def get_material_service(db: Session, material_id: int) -> Material:
 
 
 def create_material_service(db: Session, payload: MaterialCreate) -> Material:
-    material_code = generate_material_code(db, payload.material_category_code)
-
     material = Material(
-        material_code=material_code,
-        material_name_cn=payload.material_name_cn,
-        material_name_en=payload.material_name_en,
-        material_category_code=payload.material_category_code,
-        material_type_code=payload.material_type_code,
-        base_uom_code=payload.base_uom_code,
-        specification=payload.specification,
-        remark=payload.remark,
+        **payload.model_dump(),
         is_active=True,
     )
 

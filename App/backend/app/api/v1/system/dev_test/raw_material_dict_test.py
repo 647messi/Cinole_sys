@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.db.session import SessionLocal
-from app.services.master.material_service import generate_material_code
+from app.services.master.raw_material_dict_service import generate_material_code
 
 
 def generate_codes_for_category(db: Session, category_code: str, times: int = 5) -> list[str]:

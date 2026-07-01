@@ -56,14 +56,14 @@ Design rule:
 * Primary keys use `id BIGSERIAL PRIMARY KEY`.
 * Business codes use unique varchar fields, such as `material_code` and `supplier_id`.
 * Supplier child tables reference `master.suppliers(id)` with `ON DELETE CASCADE`.
-* Timestamps use `created_at` and `updated_at`.
+* Tables that need audit timestamps use `created_at` and `updated_at`.
 
 * 主数据表统一放在 `master` 下。
 * 表名使用复数名词：`materials`、`suppliers`、`supplier_origin_addresses`、`supplier_finance_infos`。
 * 主键统一使用 `id BIGSERIAL PRIMARY KEY`。
 * 业务编码使用唯一 varchar 字段，例如 `material_code` 和 `supplier_id`。
 * 供应商子表通过外键引用 `master.suppliers(id)`，并使用 `ON DELETE CASCADE`。
-* 时间字段统一使用 `created_at` 和 `updated_at`。
+* 需要审计时间的表使用 `created_at` 和 `updated_at`。
 
 ---
 
@@ -77,15 +77,13 @@ CREATE SEQUENCE IF NOT EXISTS master.cons_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS master.stor_seq START 1;
 ```
 
-Backend code generation:
+Current usage:
 
-后端编码生成：
+当前用途：
 
-| Category / 分类 | Sequence / 序列 | Code Prefix / 编码前缀 | Example / 示例 |
-| --- | --- | --- | --- |
-| `PRODUCTION` | `master.prod_seq` | `PROD` | `PROD-001` |
-| `CONSUMABLE` | `master.cons_seq` | `CONS` | `CONS-001` |
-| `STORAGE` | `master.stor_seq` | `STOR` | `STOR-001` |
+These sequences are still defined in `schema.sql`, but the current `master.materials` table expects `material_code` to be provided by the create request.
+
+这些序列仍在 `schema.sql` 中定义，但当前 `master.materials` 表要求创建请求直接提供 `material_code`。
 
 ### 4.2 Supplier Sequence / 供应商序列
 
@@ -109,38 +107,27 @@ Purpose:
 
 用途：
 
-Stores material master data, including material code, names, category, type, base unit, specification, status, remarks, and timestamps.
+Stores material master data, including material code, names, base unit, status, and remarks.
 
-存储物料主数据，包括物料编码、名称、分类、类型、基本计量单位、规格、状态、备注和时间戳。
+存储物料主数据，包括物料编码、名称、基本计量单位、状态和备注。
 
 ### 5.1 Columns / 字段
 
 | Column / 字段 | Type / 类型 | Required / 必填 | Unique / 唯一 | Default / 默认值 | Description / 描述 |
 | --- | --- | --- | --- | --- | --- |
 | `id` | `BIGSERIAL` | Yes | Yes | Auto increment | Primary key / 主键 |
-| `material_code` | `VARCHAR(50)` | Yes | Yes | Backend generated | Material business code / 物料业务编码 |
+| `material_code` | `VARCHAR(50)` | Yes | Yes | Request provided | Material business code / 物料业务编码 |
 | `material_name_cn` | `VARCHAR(200)` | Yes | No | - | Chinese material name / 物料中文名称 |
 | `material_name_en` | `VARCHAR(200)` | No | No | `NULL` | English material name / 物料英文名称 |
-| `material_category_code` | `VARCHAR(50)` | Yes | No | - | Category code / 物料分类编码 |
-| `material_type_code` | `VARCHAR(50)` | Yes | No | - | Type code / 物料类型编码 |
 | `base_uom_code` | `VARCHAR(20)` | Yes | No | - | Base unit of measure / 基本计量单位 |
-| `specification` | `VARCHAR(200)` | No | No | `NULL` | Specification / 规格型号 |
 | `is_active` | `BOOLEAN` | Yes | No | `TRUE` | Active status / 是否启用 |
 | `remark` | `TEXT` | No | No | `NULL` | Remarks / 备注 |
-| `created_at` | `TIMESTAMP` | Yes | No | `CURRENT_TIMESTAMP` | Created time / 创建时间 |
-| `updated_at` | `TIMESTAMP` | Yes | No | `CURRENT_TIMESTAMP` | Updated time / 更新时间 |
 
 ### 5.2 Indexes / 索引
 
 ```sql
 CREATE INDEX IF NOT EXISTS idx_materials_name_cn
 ON master.materials (material_name_cn);
-
-CREATE INDEX IF NOT EXISTS idx_materials_category_code
-ON master.materials (material_category_code);
-
-CREATE INDEX IF NOT EXISTS idx_materials_type_code
-ON master.materials (material_type_code);
 
 CREATE INDEX IF NOT EXISTS idx_materials_is_active
 ON master.materials (is_active);
@@ -153,8 +140,6 @@ Index purpose:
 | Index / 索引 | Purpose / 用途 |
 | --- | --- |
 | `idx_materials_name_cn` | Search or sort by Chinese name / 按中文名称查询或排序 |
-| `idx_materials_category_code` | Filter by material category / 按物料分类筛选 |
-| `idx_materials_type_code` | Filter by material type / 按物料类型筛选 |
 | `idx_materials_is_active` | Filter active or inactive materials / 按启用状态筛选 |
 
 ---
@@ -324,7 +309,7 @@ SQLAlchemy 模型：
 
 | Database Table / 数据表 | ORM Model / ORM 模型 | File / 文件 |
 | --- | --- | --- |
-| `master.materials` | `Material` | `App/backend/app/models/master/material_model.py` |
+| `master.materials` | `Material` | `App/backend/app/models/master/raw_material_dict_model.py` |
 | `master.suppliers` | `Supplier` | `App/backend/app/models/master/supplier_model.py` |
 | `master.supplier_origin_addresses` | `SupplierOriginAddress` | `App/backend/app/models/master/supplier_model.py` |
 | `master.supplier_finance_infos` | `SupplierFinanceInfo` | `App/backend/app/models/master/supplier_model.py` |
@@ -361,10 +346,9 @@ Material create flow:
 物料创建流程：
 
 ```text
-POST /api/v1/master/materials
+POST /api/v1/master/raw_material_dict
   -> MaterialCreate
-  -> material_service.generate_material_code()
-  -> material_repository.get_next_material_sequence()
+  -> request-provided material_code
   -> INSERT master.materials
 ```
 
@@ -384,13 +368,13 @@ POST /api/v1/master/suppliers
 
 ## 11. Current Limitations / 当前限制
 
-* `updated_at` has a default value, but `schema.sql` does not define a database trigger to automatically refresh it on every update. SQLAlchemy models use `onupdate=func.now()` when updates go through ORM.
+* Some tables have `updated_at` default values, but `schema.sql` does not define a database trigger to automatically refresh them on every update. SQLAlchemy models use `onupdate=func.now()` for mapped timestamp fields when updates go through ORM.
 * Supplier origin address and finance tables are mapped in ORM, but dedicated CRUD APIs for these child tables are not implemented yet.
 * `master.supplier_finance_infos` currently has a foreign key but no supporting indexes in `schema.sql`.
 * Query schemas exist in backend code, but list filtering is not implemented in current API routes.
 * `dev_test_logs` is created by the development test endpoint, not by `schema.sql`.
 
-* `updated_at` 有默认值，但 `schema.sql` 尚未定义数据库触发器自动更新时间。通过 ORM 更新时，模型使用 `onupdate=func.now()`。
+* 部分表有 `updated_at` 默认值，但 `schema.sql` 尚未定义数据库触发器自动更新时间。通过 ORM 更新时，带时间字段的模型使用 `onupdate=func.now()`。
 * 供应商产地地址表和财务信息表已完成 ORM 映射，但尚未实现对应子表 CRUD API。
 * `master.supplier_finance_infos` 当前有外键，但 `schema.sql` 尚未定义辅助索引。
 * 后端已有查询 Schema，但当前列表接口尚未实现筛选。
@@ -404,7 +388,7 @@ POST /api/v1/master/suppliers
 2. Add database-level `updated_at` trigger if non-ORM updates are expected.
 3. Add seed data for common material categories, material types, units, supplier types, and currencies.
 4. Implement query filters for material and supplier list endpoints.
-5. Add constraints or reference tables for code fields such as `material_category_code`, `material_type_code`, `base_uom_code`, `supplier_type_code`, and `currency_code`.
+5. Add constraints or reference tables for code fields such as `base_uom_code`, `supplier_type_code`, and `currency_code`.
 6. Add CRUD APIs and schemas for supplier origin addresses and supplier finance info.
 7. Consider a unique partial index for the default finance record if each supplier should have only one default finance info row.
 8. Add indexes on `master.supplier_finance_infos(supplier_id)` and `master.supplier_finance_infos(is_active)` if these filters are common.
@@ -413,7 +397,7 @@ POST /api/v1/master/suppliers
 2. 如果存在非 ORM 更新，建议增加数据库级 `updated_at` 触发器。
 3. 增加物料分类、物料类型、单位、供应商类型、币种等基础字典种子数据。
 4. 为物料和供应商列表接口实现查询筛选。
-5. 为 `material_category_code`、`material_type_code`、`base_uom_code`、`supplier_type_code`、`currency_code` 等编码字段增加约束或字典表。
+5. 为 `base_uom_code`、`supplier_type_code`、`currency_code` 等编码字段增加约束或字典表。
 6. 为供应商产地地址和供应商财务信息增加 CRUD API 与 Schema。
 7. 如果每个供应商只允许一条默认财务信息，建议增加默认财务信息的 partial unique index。
 8. 如果经常按供应商或启用状态筛选财务信息，建议增加 `master.supplier_finance_infos(supplier_id)` 和 `master.supplier_finance_infos(is_active)` 索引。

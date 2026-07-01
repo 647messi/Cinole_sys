@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.models.master.supplier_model import Supplier
+from app.models.master.supplier_model import Supplier, SupplierOriginAddress
 
 def get_supplier(db: Session, supplier_pk: int):
     return db.query(Supplier).filter(Supplier.id == supplier_pk).first()
@@ -33,6 +33,14 @@ def list_suppliers_by_variables(db: Session, **kwargs):
         if hasattr(Supplier, key):
             query = query.filter(getattr(Supplier, key) == value)
     return query.all()
+
+def list_supplier_origin_addresses(db: Session, supplier_id: int):
+    return (
+        db.query(SupplierOriginAddress)
+        .filter(SupplierOriginAddress.supplier_id == supplier_id)
+        .order_by(SupplierOriginAddress.is_default.desc(), SupplierOriginAddress.id.desc())
+        .all()
+    )
 
 def create_supplier(db: Session, supplier: Supplier):
     db.add(supplier)

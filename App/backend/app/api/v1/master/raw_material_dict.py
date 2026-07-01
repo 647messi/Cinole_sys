@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.schemas.master.material import MaterialCreate, MaterialUpdate, MaterialResponse
-from app.services.master.material_service import *
+from app.schemas.master.raw_material_dict import MaterialCreate, MaterialUpdate, MaterialResponse
+from app.services.master.raw_material_dict_service import *
 
 router = APIRouter(
-    prefix="/master/materials",
-    tags=["Master - Materials"],
+    prefix="/master/raw_material_dict",
+    tags=["Master - Raw Material Dict"],
 )
 
 

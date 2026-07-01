@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.models.master.material_model import Material
+from app.models.master.raw_material_dict_model import Material
 
 
 def get_all_materials(db: Session) -> list[Material]:
@@ -24,18 +24,6 @@ def get_material_by_code(db: Session, material_code: str) -> Material | None:
         db.query(Material)
         .filter(Material.material_code == material_code)
         .first()
-    )
-
-
-def get_materials_by_category(
-    db: Session,
-    category_code: str,
-) -> list[Material]:
-    return (
-        db.query(Material)
-        .filter(Material.material_category_code == category_code)
-        .order_by(Material.id.desc())
-        .all()
     )
 
 
