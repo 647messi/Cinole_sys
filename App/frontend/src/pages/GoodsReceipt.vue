@@ -22,7 +22,7 @@ interface Material {
 }
 
 const form = ref({
-  order_id: "",
+  // order_id: "",
   timestamp: new Date(),
   supplier_id: null as number | null,
   supplier_name: "",
@@ -57,7 +57,7 @@ async function handleCreateOrder() {
   const res = await createReceivingOrder()
 
   form.value = {
-    order_id: res.data.order_id,
+    // order_id: res.data.order_id,
     timestamp: new Date(),
     supplier_id: null,
     supplier_name: "",
@@ -65,7 +65,7 @@ async function handleCreateOrder() {
     material_id: null
   }
 
-  ElMessage.success("New receiving order created")
+  ElMessage.success("成功创建收货单")
 }
 
 function openSupplierDialog() {
@@ -89,7 +89,7 @@ function confirmSupplier() {
 
 async function addSupplier() {
   if (!newSupplier.value.supplier_name || !newSupplier.value.origin) {
-    ElMessage.warning("Please enter supplier name and origin")
+    ElMessage.warning("请输入供应商名称和原产地")
     return
   }
 
@@ -107,7 +107,7 @@ async function addSupplier() {
 
   await loadSuppliers()
 
-  ElMessage.success("Supplier added")
+  ElMessage.success("供应商已添加")
 }
 
 async function deleteSupplier() {
@@ -115,8 +115,8 @@ async function deleteSupplier() {
 
   try {
     await ElMessageBox.confirm(
-      "Are you sure you want to delete this supplier?",
-      "Warning",
+      "您确定要删除这个供应商吗？",
+      "警告",
       { type: "warning" }
     )
 
@@ -132,31 +132,31 @@ async function deleteSupplier() {
 
     await loadSuppliers()
 
-    ElMessage.success("Supplier deleted")
+    ElMessage.success("供应商已删除")
   } catch {
-    ElMessage.info("Delete cancelled")
+    ElMessage.info("删除已取消")
   }
 }
 
 async function submitForm() {
-  if (!form.value.order_id) {
-    ElMessage.warning("Please create a receiving order first")
-    return
-  }
+  // if (!form.value.order_id) {
+  //   ElMessage.warning("Please create a receiving order first")
+  //   return
+  // }
 
   if (!form.value.supplier_id) {
-    ElMessage.warning("Please select supplier")
+    ElMessage.warning("请选择供应商")
     return
   }
 
   if (!form.value.material_id) {
-    ElMessage.warning("Please select material")
+    ElMessage.warning("请选择原料")
     return
   }
 
   await submitReceivingOrder(form.value)
 
-  ElMessage.success("Receiving order submitted")
+  ElMessage.success("收货单已提交")
 }
 
 onMounted(async () => {
@@ -172,59 +172,57 @@ onMounted(async () => {
     <p>
       <RouterLink to="/home">Home</RouterLink>
     </p>
-
+      <el-button type="primary" @click="handleCreateOrder">
+          创建收货单
+        </el-button>
     <el-card class="form-card">
       <div class="card-header">
         <h2>收货单</h2>
-
-        <el-button type="primary" @click="handleCreateOrder">
-          创建收货单
-        </el-button>
       </div>
 
       <el-form :model="form" label-width="120px">
         <el-row :gutter="20">
-          <el-col :xs="24" :sm="24" :md="12">
+          <!-- <el-col :xs="24" :sm="24" :md="12">
             <el-form-item label="Order ID">
               <el-input v-model="form.order_id" readonly />
             </el-form-item>
-          </el-col>
+          </el-col> -->
 
           <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Timestamp">
+            <el-form-item label="日期">
               <el-date-picker
                 v-model="form.timestamp"
                 type="datetime"
-                placeholder="Select datetime"
+                placeholder="选择日期"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
 
           <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Supplier">
+            <el-form-item label="供应商">
               <div class="supplier-row">
                 <div class="supplier-display">
                   <div class="supplier-name">
-                    {{ form.supplier_name || "No supplier selected" }}
+                    {{ form.supplier_name || "未选中供应商" }}
                   </div>
                   <div class="supplier-origin">
-                    Origin: {{ form.origin || "-" }}
+                    原产地: {{ form.origin || "-" }}
                   </div>
                 </div>
 
                 <el-button type="primary" @click="openSupplierDialog">
-                  Select
+                  选择供应商
                 </el-button>
               </div>
             </el-form-item>
           </el-col>
 
           <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Material">
+            <el-form-item label="原料">
               <el-select
                 v-model="form.material_id"
-                placeholder="Select material"
+                placeholder="选择原料"
                 style="width: 100%"
               >
                 <el-option
@@ -240,7 +238,7 @@ onMounted(async () => {
 
         <el-form-item>
           <el-button type="success" @click="submitForm">
-            Submit
+            提交
           </el-button>
         </el-form-item>
       </el-form>
@@ -271,8 +269,8 @@ onMounted(async () => {
           @current-change="handleCurrentChange"
           style="width: 100%"
         >
-          <el-table-column prop="supplier_name" label="Supplier Name" />
-          <el-table-column prop="origin" label="Origin" />
+          <el-table-column prop="supplier_name" label="供应商名称" />
+          <el-table-column prop="origin" label="原产地" />
         </el-table>
 
         <template #footer>
@@ -292,27 +290,27 @@ onMounted(async () => {
 
       <el-dialog
         v-model="addDialogVisible"
-        title="Add Supplier"
+        title="添加供应商"
         width="90%"
         class="add-supplier-dialog"
       >
         <el-form :model="newSupplier" label-width="120px">
-          <el-form-item label="Supplier Name">
+          <el-form-item label="供应商名称">
             <el-input v-model="newSupplier.supplier_name" />
           </el-form-item>
 
-          <el-form-item label="Origin">
+          <el-form-item label="原产地">
             <el-input v-model="newSupplier.origin" />
           </el-form-item>
         </el-form>
 
         <template #footer>
           <el-button @click="addDialogVisible = false">
-            Cancel
+            取消
           </el-button>
 
           <el-button type="primary" @click="addSupplier">
-            Add
+            添加
           </el-button>
         </template>
       </el-dialog>
