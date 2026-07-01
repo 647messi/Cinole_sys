@@ -1,767 +1,264 @@
+<template>
+  <div class="goods-receipt-page">
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>New Goods Receipt</span>
+        </div>
+      </template>
+
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="150px"
+        label-position="right"
+      >
+        <el-form-item label="Receipt Time" prop="receipt_time">
+          <el-input :model-value="formattedReceiptTime" disabled />
+        </el-form-item>
+
+        <el-form-item label="Supplier" prop="supplier_id">
+          <SelectSupplier
+            v-model:supplier-id="form.supplier_id"
+            v-model:supplier-name="form.supplier_name"
+            @supplier-created="handleSupplierCreated"
+          />
+        </el-form-item>
+
+        <el-form-item label="Origin Address" prop="origin_address_id">
+          <SelectOriginAddress
+            v-model:origin-id="form.origin_address_id"
+            v-model:origin-address="form.origin_address"
+            :supplier-id="form.supplier_id"
+            :supplier-name="form.supplier_name"
+          />
+        </el-form-item>
+
+        <el-form-item label="Material" prop="material_id">
+          <SelectMaterial
+            v-model:material-id="form.material_id"
+            v-model:material-name="form.material_name_cn"
+          />
+        </el-form-item>
+
+        <el-form-item>
+          <el-button
+            type="primary"
+            :loading="submitting"
+            @click="submitForm"
+          >
+            Submit
+          </el-button>
+
+          <el-button @click="resetForm">
+            Reset
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <el-card v-if="createdReceipt" class="result-card">
+      <template #header>
+        <span>Created Receipt</span>
+      </template>
+
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="Receipt ID">
+          {{ createdReceipt.receipt_id }}
+        </el-descriptions-item>
+
+        <el-descriptions-item label="Receipt Time">
+          {{ createdReceipt.receipt_time }}
+        </el-descriptions-item>
+
+        <el-descriptions-item label="Supplier">
+          {{ createdReceipt.supplier_name }}
+        </el-descriptions-item>
+
+        <el-descriptions-item label="Origin Address">
+          {{ createdReceipt.origin_address }}
+        </el-descriptions-item>
+
+        <el-descriptions-item label="Material">
+          {{ createdReceipt.material_name_cn }}
+        </el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { computed, ref } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage } from 'element-plus'
+
+import SelectSupplier from '@/components/SelectSupplier.vue'
+import SelectOriginAddress from '@/components/SelectOriginAddress.vue'
+import SelectMaterial from '@/components/SelectMaterial.vue'
+
 import {
-  createReceivingOrder,
-  getSuppliers,
-  getMaterials,
-  submitReceivingOrder,
-  addSupplierApi,
-  deleteSupplierApi
-} from "@/api/receiving"
+  getOriginAddressLabel,
+  type CreateSupplierResult,
+} from '@/api/supplier'
 
-interface Supplier {
-  id: number
+import {
+  createGoodsReceipt,
+  type CreateGoodsReceiptResult,
+} from '@/api/goodsReceipt'
+
+interface GoodsReceiptForm {
+  receipt_time: Date
+
+  supplier_id: string | null
   supplier_name: string
-  origin: string
+
+  origin_address_id: number | null
+  origin_address: string
+
+  material_id: number | null
+  material_name_cn: string
 }
 
-interface Material {
-  id: number
-  material_name: string
-}
+const formRef = ref<FormInstance>()
+const submitting = ref(false)
+const createdReceipt = ref<CreateGoodsReceiptResult | null>(null)
 
-const form = ref({
-  // order_id: "",
-  timestamp: new Date(),
-  supplier_id: null as number | null,
-  supplier_name: "",
-  origin: "",
-  material_id: null as number | null
+const createDefaultForm = (): GoodsReceiptForm => ({
+  receipt_time: new Date(),
+
+  supplier_id: null,
+  supplier_name: '',
+
+  origin_address_id: null,
+  origin_address: '',
+
+  material_id: null,
+  material_name_cn: '',
 })
 
-const supplierDialogVisible = ref(false)
-const addDialogVisible = ref(false)
+const form = ref<GoodsReceiptForm>(createDefaultForm())
 
-const supplierList = ref<Supplier[]>([])
-const materialList = ref<Material[]>([])
+const rules: FormRules = {
+  receipt_time: [
+    {
+      required: true,
+      message: 'Receipt time is required',
+      trigger: 'change',
+    },
+  ],
+  supplier_id: [
+    {
+      required: true,
+      message: 'Please select supplier',
+      trigger: 'change',
+    },
+  ],
+  origin_address_id: [
+    {
+      required: true,
+      message: 'Please select origin address',
+      trigger: 'change',
+    },
+  ],
+  material_id: [
+    {
+      required: true,
+      message: 'Please select material',
+      trigger: 'change',
+    },
+  ],
+}
 
-const selectedSupplier = ref<Supplier | null>(null)
-
-const newSupplier = ref({
-  supplier_name: "",
-  origin: ""
+const formattedReceiptTime = computed(() => {
+  return formatDateTime(form.value.receipt_time)
 })
 
-async function loadSuppliers() {
-  const res = await getSuppliers()
-  supplierList.value = res.data
+function formatDateTime(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  const second = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
-async function loadMaterials() {
-  const res = await getMaterials()
-  materialList.value = res.data
-}
+function handleSupplierCreated(result: CreateSupplierResult) {
+  form.value.supplier_id = result.supplier.supplier_id
+  form.value.supplier_name = result.supplier.supplier_name_cn
 
-async function handleCreateOrder() {
-  const res = await createReceivingOrder()
-
-  form.value = {
-    // order_id: res.data.order_id,
-    timestamp: new Date(),
-    supplier_id: null,
-    supplier_name: "",
-    origin: "",
-    material_id: null
-  }
-
-  ElMessage.success("成功创建收货单")
-}
-
-function openSupplierDialog() {
-  selectedSupplier.value = null
-  supplierDialogVisible.value = true
-}
-
-function handleCurrentChange(row: Supplier | null) {
-  selectedSupplier.value = row
-}
-
-function confirmSupplier() {
-  if (!selectedSupplier.value) return
-
-  form.value.supplier_id = selectedSupplier.value.id
-  form.value.supplier_name = selectedSupplier.value.supplier_name
-  form.value.origin = selectedSupplier.value.origin
-
-  supplierDialogVisible.value = false
-}
-
-async function addSupplier() {
-  if (!newSupplier.value.supplier_name || !newSupplier.value.origin) {
-    ElMessage.warning("请输入供应商名称和原产地")
-    return
-  }
-
-  await addSupplierApi({
-    supplier_name: newSupplier.value.supplier_name,
-    origin: newSupplier.value.origin
-  })
-
-  newSupplier.value = {
-    supplier_name: "",
-    origin: ""
-  }
-
-  addDialogVisible.value = false
-
-  await loadSuppliers()
-
-  ElMessage.success("供应商已添加")
-}
-
-async function deleteSupplier() {
-  if (!selectedSupplier.value) return
-
-  try {
-    await ElMessageBox.confirm(
-      "您确定要删除这个供应商吗？",
-      "警告",
-      { type: "warning" }
-    )
-
-    await deleteSupplierApi(selectedSupplier.value.id)
-
-    if (form.value.supplier_id === selectedSupplier.value.id) {
-      form.value.supplier_id = null
-      form.value.supplier_name = ""
-      form.value.origin = ""
-    }
-
-    selectedSupplier.value = null
-
-    await loadSuppliers()
-
-    ElMessage.success("供应商已删除")
-  } catch {
-    ElMessage.info("删除已取消")
-  }
+  form.value.origin_address_id = result.origin_address.id
+  form.value.origin_address = getOriginAddressLabel(result.origin_address)
 }
 
 async function submitForm() {
-  // if (!form.value.order_id) {
-  //   ElMessage.warning("Please create a receiving order first")
-  //   return
-  // }
+  if (!formRef.value) return
+
+  await formRef.value.validate()
 
   if (!form.value.supplier_id) {
-    ElMessage.warning("请选择供应商")
+    ElMessage.warning('Please select supplier')
+    return
+  }
+
+  if (!form.value.origin_address_id) {
+    ElMessage.warning('Please select origin address')
     return
   }
 
   if (!form.value.material_id) {
-    ElMessage.warning("请选择原料")
+    ElMessage.warning('Please select material')
     return
   }
 
-  await submitReceivingOrder(form.value)
+  submitting.value = true
 
-  ElMessage.success("收货单已提交")
+  try {
+    const payload = {
+      receipt_time: form.value.receipt_time.toISOString(),
+
+      supplier_id: form.value.supplier_id,
+      supplier_name: form.value.supplier_name,
+
+      origin_address_id: form.value.origin_address_id,
+      origin_address: form.value.origin_address,
+
+      material_id: form.value.material_id,
+      material_name_cn: form.value.material_name_cn,
+    }
+
+    const result = await createGoodsReceipt(payload)
+
+    createdReceipt.value = result
+
+    ElMessage.success(`Goods receipt created: ${result.receipt_id}`)
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('Failed to create goods receipt')
+  } finally {
+    submitting.value = false
+  }
 }
 
-onMounted(async () => {
-  await loadSuppliers()
-  await loadMaterials()
-})
+function resetForm() {
+  form.value = createDefaultForm()
+  createdReceipt.value = null
+  formRef.value?.clearValidate()
+}
 </script>
 
-<template>
-  <div class="page-container">
-    <p class="page-title">form</p>
-
-    <p>
-      <RouterLink to="/home">Home</RouterLink>
-    </p>
-      <el-button type="primary" @click="handleCreateOrder">
-          创建收货单
-        </el-button>
-    <el-card class="form-card">
-      <div class="card-header">
-        <h2>收货单</h2>
-      </div>
-
-      <el-form :model="form" label-width="120px">
-        <el-row :gutter="20">
-          <!-- <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Order ID">
-              <el-input v-model="form.order_id" readonly />
-            </el-form-item>
-          </el-col> -->
-
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="日期">
-              <el-date-picker
-                v-model="form.timestamp"
-                type="datetime"
-                placeholder="选择日期"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="供应商">
-              <div class="supplier-row">
-                <div class="supplier-display">
-                  <div class="supplier-name">
-                    {{ form.supplier_name || "未选中供应商" }}
-                  </div>
-                  <div class="supplier-origin">
-                    原产地: {{ form.origin || "-" }}
-                  </div>
-                </div>
-
-                <el-button type="primary" @click="openSupplierDialog">
-                  选择供应商
-                </el-button>
-              </div>
-            </el-form-item>
-          </el-col>
-
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="原料">
-              <el-select
-                v-model="form.material_id"
-                placeholder="选择原料"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="material in materialList"
-                  :key="material.id"
-                  :label="material.material_name"
-                  :value="material.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item>
-          <el-button type="success" @click="submitForm">
-            提交
-          </el-button>
-        </el-form-item>
-      </el-form>
-
-      <el-dialog
-        v-model="supplierDialogVisible"
-        title="Select Supplier"
-        width="90%"
-        class="supplier-dialog"
-      >
-        <div class="dialog-toolbar">
-          <el-button type="primary" @click="addDialogVisible = true">
-            Add
-          </el-button>
-
-          <el-button
-            type="danger"
-            :disabled="!selectedSupplier"
-            @click="deleteSupplier"
-          >
-            Delete
-          </el-button>
-        </div>
-
-        <el-table
-          :data="supplierList"
-          highlight-current-row
-          @current-change="handleCurrentChange"
-          style="width: 100%"
-        >
-          <el-table-column prop="supplier_name" label="供应商名称" />
-          <el-table-column prop="origin" label="原产地" />
-        </el-table>
-
-        <template #footer>
-          <el-button @click="supplierDialogVisible = false">
-            Cancel
-          </el-button>
-
-          <el-button
-            type="primary"
-            :disabled="!selectedSupplier"
-            @click="confirmSupplier"
-          >
-            Confirm
-          </el-button>
-        </template>
-      </el-dialog>
-
-      <el-dialog
-        v-model="addDialogVisible"
-        title="添加供应商"
-        width="90%"
-        class="add-supplier-dialog"
-      >
-        <el-form :model="newSupplier" label-width="120px">
-          <el-form-item label="供应商名称">
-            <el-input v-model="newSupplier.supplier_name" />
-          </el-form-item>
-
-          <el-form-item label="原产地">
-            <el-input v-model="newSupplier.origin" />
-          </el-form-item>
-        </el-form>
-
-        <template #footer>
-          <el-button @click="addDialogVisible = false">
-            取消
-          </el-button>
-
-          <el-button type="primary" @click="addSupplier">
-            添加
-          </el-button>
-        </template>
-      </el-dialog>
-    </el-card>
-  </div>
-</template>
-
 <style scoped>
-.page-container {
-  width: 100%;
-  min-height: 100vh;
-  box-sizing: border-box;
-  padding: 24px;
-}
-
-.page-title {
-  margin: 0 0 8px;
-}
-
-.form-card {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  box-sizing: border-box;
+.goods-receipt-page {
+  padding: 16px;
 }
 
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  font-weight: 600;
 }
 
-.card-header h2 {
-  margin: 0;
-}
-
-.supplier-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  align-items: stretch;
-}
-
-.supplier-display {
-  flex: 1;
-  min-height: 32px;
-  padding: 8px 12px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  background-color: var(--el-fill-color-light);
-  box-sizing: border-box;
-}
-
-.supplier-name {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-}
-
-.supplier-origin {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.dialog-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-:deep(.supplier-dialog) {
-  max-width: 700px;
-}
-
-:deep(.add-supplier-dialog) {
-  max-width: 500px;
-}
-
-@media (max-width: 768px) {
-  .page-container {
-    padding: 12px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .supplier-row {
-    flex-direction: column;
-  }
-
-  :deep(.el-dialog) {
-    width: 95% !important;
-  }
+.result-card {
+  margin-top: 16px;
 }
 </style>
-
-<!-- <script setup lang="ts">
-import { ref } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
-
-interface Supplier {
-  supplier_name: string
-  origin: string
-}
-
-const form = ref({
-  order_id: "GRN00001",
-  timestamp: new Date(),
-  supplier_name: "",
-  origin: "",
-  material_name: ""
-})
-
-const supplierDialogVisible = ref(false)
-const addDialogVisible = ref(false)
-
-const supplierList = ref<Supplier[]>([
-  {
-    supplier_name: "ABC Supplier",
-    origin: "China"
-  },
-  {
-    supplier_name: "XYZ Supplier",
-    origin: "Australia"
-  }
-])
-
-const materialNameList = ref([
-  "Steel",
-  "Aluminium",
-  "Copper",
-  "Plastic"
-])
-
-const selectedSupplier = ref<Supplier | null>(null)
-
-const newSupplier = ref<Supplier>({
-  supplier_name: "",
-  origin: ""
-})
-
-function openSupplierDialog() {
-  selectedSupplier.value = null
-  supplierDialogVisible.value = true
-}
-
-function handleCurrentChange(row: Supplier | null) {
-  selectedSupplier.value = row
-}
-
-function confirmSupplier() {
-  if (!selectedSupplier.value) return
-
-  form.value.supplier_name = selectedSupplier.value.supplier_name
-  form.value.origin = selectedSupplier.value.origin
-
-  supplierDialogVisible.value = false
-}
-
-function addSupplier() {
-  if (!newSupplier.value.supplier_name || !newSupplier.value.origin) {
-    ElMessage.warning("Please enter supplier name and origin")
-    return
-  }
-
-  const exists = supplierList.value.some(
-    item => item.supplier_name === newSupplier.value.supplier_name
-  )
-
-  if (exists) {
-    ElMessage.warning("Supplier already exists")
-    return
-  }
-
-  supplierList.value.push({
-    supplier_name: newSupplier.value.supplier_name,
-    origin: newSupplier.value.origin
-  })
-
-  newSupplier.value = {
-    supplier_name: "",
-    origin: ""
-  }
-
-  addDialogVisible.value = false
-  ElMessage.success("Supplier added")
-}
-
-async function deleteSupplier() {
-  if (!selectedSupplier.value) return
-
-  try {
-    await ElMessageBox.confirm(
-      "Are you sure you want to delete this supplier?",
-      "Warning",
-      {
-        type: "warning"
-      }
-    )
-
-    supplierList.value = supplierList.value.filter(
-      item =>
-        selectedSupplier.value &&
-        item.supplier_name !== selectedSupplier.value.supplier_name
-    )
-
-    if (form.value.supplier_name === selectedSupplier.value.supplier_name) {
-      form.value.supplier_name = ""
-      form.value.origin = ""
-    }
-
-    selectedSupplier.value = null
-    ElMessage.success("Supplier deleted")
-  } catch {
-    ElMessage.info("Delete cancelled")
-  }
-}
-
-function submitForm() {
-  console.log("Receiving Order:", form.value)
-  ElMessage.success("Receiving order submitted")
-}
-</script>
-
-<template>
-  <div class="page-container">
-    <p class="page-title">form</p>
-
-    <p>
-      <RouterLink to="/home">Home</RouterLink>
-    </p>
-
-    <el-card class="form-card">
-      <h2>收货单</h2>
-
-      <el-form :model="form" label-width="120px">
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Order ID">
-              <el-input v-model="form.order_id" readonly />
-            </el-form-item>
-          </el-col>
-
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Timestamp">
-              <el-date-picker
-                v-model="form.timestamp"
-                type="datetime"
-                placeholder="Select datetime"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Supplier">
-              <div class="supplier-row">
-                <div class="supplier-display">
-                  <div class="supplier-name">
-                    {{ form.supplier_name || "No supplier selected" }}
-                  </div>
-                  <div class="supplier-origin">
-                    Origin: {{ form.origin || "-" }}
-                  </div>
-                </div>
-
-                <el-button type="primary" @click="openSupplierDialog">
-                  Select
-                </el-button>
-              </div>
-            </el-form-item>
-          </el-col>
-
-          <el-col :xs="24" :sm="24" :md="12">
-            <el-form-item label="Material">
-              <el-select
-                v-model="form.material_name"
-                placeholder="Select material"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="material in materialNameList"
-                  :key="material"
-                  :label="material"
-                  :value="material"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item>
-          <el-button type="success" @click="submitForm">
-            Submit
-          </el-button>
-        </el-form-item>
-      </el-form>
-
-      <el-dialog
-        v-model="supplierDialogVisible"
-        title="Select Supplier"
-        width="90%"
-        class="supplier-dialog"
-      >
-        <div class="dialog-toolbar">
-          <el-button type="primary" @click="addDialogVisible = true">
-            Add
-          </el-button>
-
-          <el-button
-            type="danger"
-            :disabled="!selectedSupplier"
-            @click="deleteSupplier"
-          >
-            Delete
-          </el-button>
-        </div>
-
-        <el-table
-          :data="supplierList"
-          highlight-current-row
-          @current-change="handleCurrentChange"
-          style="width: 100%"
-        >
-          <el-table-column prop="supplier_name" label="Supplier Name" />
-          <el-table-column prop="origin" label="Origin" />
-        </el-table>
-
-        <template #footer>
-          <el-button @click="supplierDialogVisible = false">
-            Cancel
-          </el-button>
-
-          <el-button
-            type="primary"
-            :disabled="!selectedSupplier"
-            @click="confirmSupplier"
-          >
-            Confirm
-          </el-button>
-        </template>
-      </el-dialog>
-
-      <el-dialog
-        v-model="addDialogVisible"
-        title="Add Supplier"
-        width="90%"
-        class="add-supplier-dialog"
-      >
-        <el-form :model="newSupplier" label-width="120px">
-          <el-form-item label="Supplier Name">
-            <el-input v-model="newSupplier.supplier_name" />
-          </el-form-item>
-
-          <el-form-item label="Origin">
-            <el-input v-model="newSupplier.origin" />
-          </el-form-item>
-        </el-form>
-
-        <template #footer>
-          <el-button @click="addDialogVisible = false">
-            Cancel
-          </el-button>
-
-          <el-button type="primary" @click="addSupplier">
-            Add
-          </el-button>
-        </template>
-      </el-dialog>
-    </el-card>
-  </div>
-</template>
-
-<style scoped>
-.page-container {
-  width: 100%;
-  min-height: 100vh;
-  box-sizing: border-box;
-  padding: 24px;
-}
-
-.page-title {
-  margin: 0 0 8px;
-}
-
-.form-card {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  box-sizing: border-box;
-}
-
-.supplier-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  align-items: stretch;
-}
-
-.supplier-display {
-  flex: 1;
-  min-height: 32px;
-  padding: 8px 12px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  background-color: var(--el-fill-color-light);
-  box-sizing: border-box;
-}
-
-.supplier-name {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-}
-
-.supplier-origin {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.dialog-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-:deep(.supplier-dialog) {
-  max-width: 700px;
-}
-
-:deep(.add-supplier-dialog) {
-  max-width: 500px;
-}
-
-@media (max-width: 768px) {
-  .page-container {
-    padding: 12px;
-  }
-
-  .supplier-row {
-    flex-direction: column;
-  }
-
-  :deep(.el-dialog) {
-    width: 95% !important;
-  }
-}
-</style> -->

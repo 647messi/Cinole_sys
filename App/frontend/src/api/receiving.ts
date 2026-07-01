@@ -12,7 +12,8 @@ export function addSupplierApi(data: {
   supplier_name: string
   origin: string
 }) {
-  return request.post("/suppliers", data)
+  // return request.post("/suppliers", data)
+  return request.post("/test", data)
 }
 
 export function deleteSupplierApi(supplierId: number) {
