@@ -20,23 +20,23 @@
       <el-divider content-position="left">Origin Address</el-divider>
 
       <el-form-item label="Country">
-        <el-input v-model="form.country" placeholder="Optional" />
+        <el-input v-model="form.country" />
       </el-form-item>
 
       <el-form-item label="Province / State">
-        <el-input v-model="form.province" placeholder="Optional" />
+        <el-input v-model="form.province" />
       </el-form-item>
 
       <el-form-item label="City">
-        <el-input v-model="form.city" placeholder="Optional" />
+        <el-input v-model="form.city" />
       </el-form-item>
 
       <el-form-item label="District">
-        <el-input v-model="form.district" placeholder="Optional" />
+        <el-input v-model="form.district" />
       </el-form-item>
 
       <el-form-item label="Postal Code">
-        <el-input v-model="form.postal_code" placeholder="Optional" />
+        <el-input v-model="form.postal_code" />
       </el-form-item>
 
       <el-form-item label="Detailed Address" prop="detailed_address">
@@ -65,14 +65,20 @@
           v-model="form.remark"
           type="textarea"
           :rows="2"
-          placeholder="Optional"
         />
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="dialogVisible = false">Cancel</el-button>
-      <el-button type="primary" :loading="submitting" @click="submitForm">
+      <el-button @click="dialogVisible = false">
+        Cancel
+      </el-button>
+
+      <el-button
+        type="primary"
+        :loading="submitting"
+        @click="submitForm"
+      >
         Create
       </el-button>
     </template>
@@ -83,6 +89,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+
 import {
   buildFullAddress,
   createOriginAddress,

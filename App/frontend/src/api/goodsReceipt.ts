@@ -1,10 +1,5 @@
-import axios from 'axios'
+import { http, unwrap } from './http'
 import { API_PREFIX } from './config'
-
-const http = axios.create({
-  baseURL: '',
-  timeout: 15000,
-})
 
 export interface CreateGoodsReceiptPayload {
   receipt_time: string
@@ -34,13 +29,14 @@ export interface CreateGoodsReceiptResult {
   material_name_cn: string
 }
 
-function unwrap<T>(res: any): T {
-  return res?.data?.data ?? res?.data ?? res
-}
-
 export async function createGoodsReceipt(
   payload: CreateGoodsReceiptPayload,
 ): Promise<CreateGoodsReceiptResult> {
-  const res = await http.post(`${API_PREFIX.master}/goods-receipts`, payload)
+  const res = await http.post(
+    // `${API_PREFIX.transaction}/goods-receipts`,
+    `${API_PREFIX.transaction}/goods-receipts`,
+    payload,
+  )
+
   return unwrap<CreateGoodsReceiptResult>(res)
 }

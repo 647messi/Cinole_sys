@@ -1,10 +1,5 @@
-import axios from 'axios'
+import { http, unwrap } from './http'
 import { API_PREFIX } from './config'
-
-const http = axios.create({
-  baseURL: '',
-  timeout: 15000,
-})
 
 export interface Supplier {
   supplier_id: string
@@ -86,10 +81,6 @@ export interface CreateOriginAddressPayload {
   remark?: string | null
 }
 
-function unwrap<T>(res: any): T {
-  return res?.data?.data ?? res?.data ?? res
-}
-
 export async function searchSuppliers(keyword = ''): Promise<Supplier[]> {
   const res = await http.get(`${API_PREFIX.master}/suppliers`, {
     params: {
@@ -99,6 +90,11 @@ export async function searchSuppliers(keyword = ''): Promise<Supplier[]> {
   })
 
   return unwrap<Supplier[]>(res)
+}
+
+export async function getSupplierById(supplierId: string): Promise<Supplier> {
+  const res = await http.get(`${API_PREFIX.master}/suppliers/${supplierId}`)
+  return unwrap<Supplier>(res)
 }
 
 export async function createSupplierWithOrigin(
@@ -112,12 +108,15 @@ export async function searchOriginAddresses(
   supplierId: string,
   keyword = '',
 ): Promise<OriginAddress[]> {
-  const res = await http.get(`${API_PREFIX.master}/suppliers/${supplierId}/origin-addresses`, {
-    params: {
-      keyword,
-      is_active: true,
+  const res = await http.get(
+    `${API_PREFIX.master}/suppliers/${supplierId}/origin-addresses`,
+    {
+      params: {
+        keyword,
+        is_active: true,
+      },
     },
-  })
+  )
 
   return unwrap<OriginAddress[]>(res)
 }

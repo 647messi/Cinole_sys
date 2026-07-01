@@ -1,10 +1,5 @@
-import axios from 'axios'
+import { http, unwrap } from './http'
 import { API_PREFIX } from './config'
-
-const http = axios.create({
-  baseURL: '',
-  timeout: 15000,
-})
 
 export interface Material {
   id: number
@@ -15,12 +10,8 @@ export interface Material {
   is_active?: boolean
 }
 
-function unwrap<T>(res: any): T {
-  return res?.data?.data ?? res?.data ?? res
-}
-
 export async function searchMaterials(keyword = ''): Promise<Material[]> {
-  const res = await http.get(`${API_PREFIX.master}/master/materials`, {
+  const res = await http.get(`${API_PREFIX.master}/raw_materials_dict`, {
     params: {
       keyword,
       is_active: true,

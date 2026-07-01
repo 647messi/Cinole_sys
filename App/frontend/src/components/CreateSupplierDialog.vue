@@ -23,45 +23,27 @@
       </el-form-item>
 
       <el-form-item label="Supplier EN Name">
-        <el-input
-          v-model="form.supplier.supplier_name_en"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.supplier.supplier_name_en" />
       </el-form-item>
 
       <el-form-item label="Short Code">
-        <el-input
-          v-model="form.supplier.supplier_short_code"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.supplier.supplier_short_code" />
       </el-form-item>
 
       <el-form-item label="Supplier Type">
-        <el-input
-          v-model="form.supplier.supplier_type_code"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.supplier.supplier_type_code" />
       </el-form-item>
 
       <el-form-item label="Contact Name">
-        <el-input
-          v-model="form.supplier.contact_name"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.supplier.contact_name" />
       </el-form-item>
 
       <el-form-item label="Phone">
-        <el-input
-          v-model="form.supplier.phone"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.supplier.phone" />
       </el-form-item>
 
       <el-form-item label="Email">
-        <el-input
-          v-model="form.supplier.email"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.supplier.email" />
       </el-form-item>
 
       <el-form-item label="Active">
@@ -73,39 +55,29 @@
           v-model="form.supplier.remark"
           type="textarea"
           :rows="2"
-          placeholder="Optional"
         />
       </el-form-item>
 
       <el-divider content-position="left">Origin Address</el-divider>
 
       <el-form-item label="Country">
-        <el-input v-model="form.origin_address.country" placeholder="Optional" />
+        <el-input v-model="form.origin_address.country" />
       </el-form-item>
 
       <el-form-item label="Province / State">
-        <el-input
-          v-model="form.origin_address.province"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.origin_address.province" />
       </el-form-item>
 
       <el-form-item label="City">
-        <el-input v-model="form.origin_address.city" placeholder="Optional" />
+        <el-input v-model="form.origin_address.city" />
       </el-form-item>
 
       <el-form-item label="District">
-        <el-input
-          v-model="form.origin_address.district"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.origin_address.district" />
       </el-form-item>
 
       <el-form-item label="Postal Code">
-        <el-input
-          v-model="form.origin_address.postal_code"
-          placeholder="Optional"
-        />
+        <el-input v-model="form.origin_address.postal_code" />
       </el-form-item>
 
       <el-form-item label="Detailed Address" prop="origin_address.detailed_address">
@@ -125,7 +97,7 @@
         <el-switch v-model="form.origin_address.is_default" />
       </el-form-item>
 
-      <el-form-item label="Active">
+      <el-form-item label="Address Active">
         <el-switch v-model="form.origin_address.is_active" />
       </el-form-item>
 
@@ -134,14 +106,20 @@
           v-model="form.origin_address.remark"
           type="textarea"
           :rows="2"
-          placeholder="Optional"
         />
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="dialogVisible = false">Cancel</el-button>
-      <el-button type="primary" :loading="submitting" @click="submitForm">
+      <el-button @click="dialogVisible = false">
+        Cancel
+      </el-button>
+
+      <el-button
+        type="primary"
+        :loading="submitting"
+        @click="submitForm"
+      >
         Create
       </el-button>
     </template>
@@ -152,6 +130,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+
 import {
   buildFullAddress,
   createSupplierWithOrigin,
@@ -224,8 +203,11 @@ const fullAddressPreview = computed(() => {
 })
 
 function resetForm() {
-  Object.assign(form.supplier, defaultForm().supplier)
-  Object.assign(form.origin_address, defaultForm().origin_address)
+  const fresh = defaultForm()
+
+  Object.assign(form.supplier, fresh.supplier)
+  Object.assign(form.origin_address, fresh.origin_address)
+
   formRef.value?.clearValidate()
 }
 

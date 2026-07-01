@@ -19,26 +19,57 @@
         </el-form-item>
 
         <el-form-item label="Supplier" prop="supplier_id">
-          <SelectSupplier
-            v-model:supplier-id="form.supplier_id"
-            v-model:supplier-name="form.supplier_name"
-            @supplier-created="handleSupplierCreated"
-          />
+          <RemoteSearchSelect
+            v-model="form.supplier_id"
+            placeholder="Search or select supplier"
+            :fetch-options="fetchSupplierOptions"
+            :extra-options="supplierExtraOptions"
+            @change="handleSupplierChange"
+            @clear="handleSupplierClear"
+          >
+            <template #action>
+              <el-button
+                type="primary"
+                link
+                @click="createSupplierVisible = true"
+              >
+                + New Supplier
+              </el-button>
+            </template>
+          </RemoteSearchSelect>
         </el-form-item>
 
         <el-form-item label="Origin Address" prop="origin_address_id">
-          <SelectOriginAddress
-            v-model:origin-id="form.origin_address_id"
-            v-model:origin-address="form.origin_address"
-            :supplier-id="form.supplier_id"
-            :supplier-name="form.supplier_name"
-          />
+          <RemoteSearchSelect
+            :key="form.supplier_id || 'no-supplier'"
+            v-model="form.origin_address_id"
+            placeholder="Search or select origin address"
+            :disabled="!form.supplier_id"
+            :fetch-options="fetchOriginOptions"
+            :extra-options="originExtraOptions"
+            @change="handleOriginChange"
+            @clear="handleOriginClear"
+          >
+            <template #action>
+              <el-button
+                type="primary"
+                link
+                :disabled="!form.supplier_id"
+                @click="createOriginVisible = true"
+              >
+                + New Origin Address
+              </el-button>
+            </template>
+          </RemoteSearchSelect>
         </el-form-item>
 
         <el-form-item label="Material" prop="material_id">
-          <SelectMaterial
-            v-model:material-id="form.material_id"
-            v-model:material-name="form.material_name_cn"
+          <RemoteSearchSelect
+            v-model="form.material_id"
+            placeholder="Search or select material"
+            :fetch-options="fetchMaterialOptions"
+            @change="handleMaterialChange"
+            @clear="handleMaterialClear"
           />
         </el-form-item>
 
@@ -85,6 +116,18 @@
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
+
+    <CreateSupplierDialog
+      v-model="createSupplierVisible"
+      @created="handleSupplierCreated"
+    />
+
+    <CreateOriginAddressDialog
+      v-model="createOriginVisible"
+      :supplier-id="form.supplier_id"
+      :supplier-name="form.supplier_name"
+      @created="handleOriginCreated"
+    />
   </div>
 </template>
 
@@ -93,14 +136,26 @@ import { computed, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
-import SelectSupplier from '@/components/SelectSupplier.vue'
-import SelectOriginAddress from '@/components/SelectOriginAddress.vue'
-import SelectMaterial from '@/components/SelectMaterial.vue'
+import RemoteSearchSelect from '@/components/common/RemoteSearchSelect.vue'
+import CreateSupplierDialog from '@/components/CreateSupplierDialog.vue'
+import CreateOriginAddressDialog from '@/components/CreateOriginAddressDialog.vue'
+
+import type { SelectOption } from '@/types/select'
+
+import {
+  fetchSupplierOptions,
+  fetchOriginAddressOptions,
+  fetchMaterialOptions,
+} from '@/api/selectOptions'
 
 import {
   getOriginAddressLabel,
+  type Supplier,
+  type OriginAddress,
   type CreateSupplierResult,
 } from '@/api/supplier'
+
+import type { Material } from '@/api/material'
 
 import {
   createGoodsReceipt,
@@ -122,7 +177,14 @@ interface GoodsReceiptForm {
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+
+const createSupplierVisible = ref(false)
+const createOriginVisible = ref(false)
+
 const createdReceipt = ref<CreateGoodsReceiptResult | null>(null)
+
+const supplierExtraOptions = ref<SelectOption<Supplier>[]>([])
+const originExtraOptions = ref<SelectOption<OriginAddress>[]>([])
 
 const createDefaultForm = (): GoodsReceiptForm => ({
   receipt_time: new Date(),
@@ -185,12 +247,111 @@ function formatDateTime(date: Date) {
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
+function addSupplierExtraOption(supplier: Supplier) {
+  const option: SelectOption<Supplier> = {
+    label: supplier.supplier_name_en
+      ? `${supplier.supplier_name_cn} / ${supplier.supplier_name_en}`
+      : supplier.supplier_name_cn,
+    value: supplier.supplier_id,
+    raw: supplier,
+  }
+
+  supplierExtraOptions.value = [
+    option,
+    ...supplierExtraOptions.value.filter((item) => item.value !== option.value),
+  ]
+}
+
+function addOriginExtraOption(origin: OriginAddress) {
+  const option: SelectOption<OriginAddress> = {
+    label: getOriginAddressLabel(origin),
+    value: origin.id,
+    raw: origin,
+  }
+
+  originExtraOptions.value = [
+    option,
+    ...originExtraOptions.value.filter((item) => item.value !== option.value),
+  ]
+}
+
+async function fetchOriginOptions(keyword: string) {
+  if (!form.value.supplier_id) {
+    return []
+  }
+
+  return fetchOriginAddressOptions(form.value.supplier_id, keyword)
+}
+
+function handleSupplierChange(option: SelectOption<Supplier> | null) {
+  if (!option) {
+    handleSupplierClear()
+    return
+  }
+
+  form.value.supplier_id = option.raw.supplier_id
+  form.value.supplier_name = option.raw.supplier_name_cn
+
+  form.value.origin_address_id = null
+  form.value.origin_address = ''
+  originExtraOptions.value = []
+}
+
+function handleSupplierClear() {
+  form.value.supplier_id = null
+  form.value.supplier_name = ''
+
+  form.value.origin_address_id = null
+  form.value.origin_address = ''
+  originExtraOptions.value = []
+}
+
+function handleOriginChange(option: SelectOption<OriginAddress> | null) {
+  if (!option) {
+    handleOriginClear()
+    return
+  }
+
+  form.value.origin_address_id = option.raw.id
+  form.value.origin_address = getOriginAddressLabel(option.raw)
+}
+
+function handleOriginClear() {
+  form.value.origin_address_id = null
+  form.value.origin_address = ''
+}
+
+function handleMaterialChange(option: SelectOption<Material> | null) {
+  if (!option) {
+    handleMaterialClear()
+    return
+  }
+
+  form.value.material_id = option.raw.id
+  form.value.material_name_cn = option.raw.material_name_cn
+}
+
+function handleMaterialClear() {
+  form.value.material_id = null
+  form.value.material_name_cn = ''
+}
+
 function handleSupplierCreated(result: CreateSupplierResult) {
+  addSupplierExtraOption(result.supplier)
+  addOriginExtraOption(result.origin_address)
+
   form.value.supplier_id = result.supplier.supplier_id
   form.value.supplier_name = result.supplier.supplier_name_cn
 
   form.value.origin_address_id = result.origin_address.id
   form.value.origin_address = getOriginAddressLabel(result.origin_address)
+}
+
+function handleOriginCreated(origin: OriginAddress) {
+  addOriginExtraOption(origin)
+
+  form.value.origin_address_id = origin.id
+  form.value.origin_address = getOriginAddressLabel(origin)
 }
 
 async function submitForm() {
@@ -216,8 +377,8 @@ async function submitForm() {
   submitting.value = true
 
   try {
-    const payload = {
-      receipt_time: form.value.receipt_time.toISOString(),
+    const result = await createGoodsReceipt({
+      receipt_time: formatDateTime(form.value.receipt_time),
 
       supplier_id: form.value.supplier_id,
       supplier_name: form.value.supplier_name,
@@ -227,9 +388,7 @@ async function submitForm() {
 
       material_id: form.value.material_id,
       material_name_cn: form.value.material_name_cn,
-    }
-
-    const result = await createGoodsReceipt(payload)
+    })
 
     createdReceipt.value = result
 
@@ -245,6 +404,9 @@ async function submitForm() {
 function resetForm() {
   form.value = createDefaultForm()
   createdReceipt.value = null
+  supplierExtraOptions.value = []
+  originExtraOptions.value = []
+
   formRef.value?.clearValidate()
 }
 </script>
