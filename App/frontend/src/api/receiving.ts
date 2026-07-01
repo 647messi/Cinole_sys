@@ -25,5 +25,5 @@ export function getMaterials() {
 }
 
 export function submitReceivingOrder(data: any) {
-  return request.post("/receiving-orders", data)
+  return request.post("/test/test", data)
 }
